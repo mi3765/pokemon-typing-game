@@ -13,10 +13,13 @@ export default function Home() {
 	const closeGamePlay = () => {
 		setIsGamePlay(false);
 	};
+
 	return (
 		<div className="container">
-			<Start />
-			<button onClick={openGamePlay}>START</button>
+			<div className="start-display">
+				<Start />
+				<button onClick={openGamePlay}>START</button>
+			</div>
 			{isGamePlay && <GamePlay onClose={closeGamePlay}></GamePlay>}
 		</div>
 	);
