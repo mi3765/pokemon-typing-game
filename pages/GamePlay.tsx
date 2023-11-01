@@ -23,12 +23,35 @@ export const GamePlay: React.FC<Props> = ({ children, onClose }) => {
 	const [correctPokemons, setCorrectPokemons] = useState<number>(0);
 	const [errorText, setErrorText] = useState<string>("");
 
+	// 新しい関数: 問題を更新するための関数
+	const updateQuestion = async () => {
+		try {
+			const data = await getPokemonData();
+			console.log(data);
+			// API参照のタイミングで色々初期化
+			setPokemonName(data.name);
+			setPokemonImage(data.sprites.front_default || undefined);
+			setPokemonNameLength(data.name.length);
+			setCorrectCount(0);
+			setTimer(30);
+			setInputElement("");
+			// 正解の文字を <span> 要素の配列として生成
+			// 1文字ずつ装飾するため
+			const correctValueArray = data.name.split("").map((char, index) => {
+				return <span key={index}>{char}</span>;
+			});
+
+			setCorrectValue(correctValueArray);
+		} catch (error) {
+			console.error(error);
+		}
+	};
+
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
 				const data = await getPokemonData();
 				console.log(data);
-				console.log(data.types[0].type.name);
 				// API参照のタイミングで色々初期化
 				setPokemonName(data.name);
 				setPokemonImage(data.sprites.front_default || undefined);
@@ -47,11 +70,12 @@ export const GamePlay: React.FC<Props> = ({ children, onClose }) => {
 				console.error(error);
 			}
 		};
-		if (timer === 0 || pokemonNameLength === correctCount) {
-			// タイマーが0またはゲームクリア条件を満たす場合のみデータを再取得
-			fetchData();
+		if (timer <= 0 || pokemonNameLength === correctCount) {
+			// 制限時間が0秒以下または全文字タイピング正答の条件を追加
+			// 問題を更新
+			updateQuestion();
 		}
-	}, [timer === 0 || pokemonNameLength === correctCount]);
+	}, [timer, correctCount, pokemonNameLength]);
 
 	useEffect(() => {
 		const correctLetter = document.querySelector(".display");
@@ -77,7 +101,7 @@ export const GamePlay: React.FC<Props> = ({ children, onClose }) => {
 		if (missCount >= 5) {
 			console.log("GAME OVER");
 		}
-	}, [timer]);
+	}, [timer, missCount]);
 
 	useEffect(() => {
 		const intervalId = setInterval(() => {
