@@ -11,9 +11,11 @@ interface Props {
 
 export const GamePlay: React.FC<Props> = ({ children, onClose }) => {
 	const [pokemonName, setPokemonName] = useState<string>("");
-	const [pokemonImage, setPokemonImage] = useState<string | null>(null);
+	const [pokemonImage, setPokemonImage] = useState<string | undefined>(
+		undefined
+	);
 	const [inputElement, setInputElement] = useState<string>("");
-	const [correctValue, setCorrectValue] = useState<string[]>([]);
+	const [correctValue, setCorrectValue] = useState<JSX.Element[]>([]);
 	const [correctCount, setCorrectCount] = useState<number>(0);
 	const [pokemonNameLength, setPokemonNameLength] = useState<number>(0);
 	const [timer, setTimer] = useState<number>(30);
@@ -25,13 +27,17 @@ export const GamePlay: React.FC<Props> = ({ children, onClose }) => {
 		const fetchData = async () => {
 			try {
 				const data = await getPokemonData();
+				console.log(data);
+				console.log(data.types[0].type.name);
+				// API参照のタイミングで色々初期化
 				setPokemonName(data.name);
-				setPokemonImage(data.sprites.front_default);
+				setPokemonImage(data.sprites.front_default || undefined);
 				setPokemonNameLength(data.name.length);
 				setCorrectCount(0);
 				setTimer(30);
 				setInputElement("");
-				// 正解の文字を span 要素の配列として生成
+				// 正解の文字を <span> 要素の配列として生成
+				// 1文字ずつ装飾するため
 				const correctValueArray = data.name.split("").map((char, index) => {
 					return <span key={index}>{char}</span>;
 				});
@@ -45,7 +51,7 @@ export const GamePlay: React.FC<Props> = ({ children, onClose }) => {
 			// タイマーが0またはゲームクリア条件を満たす場合のみデータを再取得
 			fetchData();
 		}
-	}, [timer == 0 || pokemonNameLength == correctCount]);
+	}, [timer === 0 || pokemonNameLength === correctCount]);
 
 	useEffect(() => {
 		const correctLetter = document.querySelector(".display");
@@ -66,6 +72,7 @@ export const GamePlay: React.FC<Props> = ({ children, onClose }) => {
 				setTimer(30);
 			}, 1000);
 			setMissCount((prev) => prev + 1);
+			console.log("MISS");
 		}
 		if (missCount >= 5) {
 			console.log("GAME OVER");
@@ -89,6 +96,7 @@ export const GamePlay: React.FC<Props> = ({ children, onClose }) => {
 		arrayValue.map((char: string, index: number) => {
 			const correctLetter = document.querySelector(".display");
 			const childElems = correctLetter?.children;
+			console.log(childElems);
 			if (index >= correctValue.length) {
 				index = 0;
 				setErrorText("入力文字数が正解の文字数を超えています");
@@ -96,25 +104,21 @@ export const GamePlay: React.FC<Props> = ({ children, onClose }) => {
 				setErrorText("");
 			}
 
-			// TODO: indexの値を超えて文字を入力された時の処理を追加する
-			if (arrayValue[index] === null) {
+			if (childElems && arrayValue[index] === null) {
 				childElems[index].classList.remove("correct");
 				childElems[index].classList.remove("incorrect");
-			} else if (correctValue[index].props.children === arrayValue[index]) {
+			} else if (
+				childElems &&
+				correctValue[index]?.props.children === arrayValue[index]
+			) {
 				setCorrectCount(correctCount + 1);
-				console.log(correctValue[index].props.children);
-				console.log(arrayValue[index]);
 				childElems[index].classList.add("correct");
 				childElems[index].classList.remove("incorrect");
-				console.log(pokemonNameLength);
-				console.log(correctCount);
 				if (correctCount + 1 === pokemonNameLength) {
 					// 音ならす
-					// 色々リセット
 					setCorrectPokemons(correctPokemons + 1);
 				}
-			} else {
-				// 間違った文字のデザインを変える処理をここに追加
+			} else if (childElems) {
 				childElems[index].classList.remove("correct");
 				childElems[index].classList.add("incorrect");
 			}
@@ -132,7 +136,13 @@ export const GamePlay: React.FC<Props> = ({ children, onClose }) => {
 				<div>{correctPokemons}</div>
 				<div className="timer">{timer}</div>
 				<div className="pokemon-card">
-					<div className="display">{correctValue}</div>
+					{Array.isArray(correctValue) ? (
+						<div className="display">
+							{correctValue.map((element, index) => (
+								<span key={index}>{element}</span>
+							))}
+						</div>
+					) : null}
 					<img src={pokemonImage} alt="" />
 					<input
 						type="text"
